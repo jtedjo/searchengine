@@ -1,4 +1,6 @@
 # searchengine
+Algorithm/ How to use this program:
+
 
 STEP 1: Create a user on MySql: user1//password
 (line to run on MysSql)
