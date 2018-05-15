@@ -23,3 +23,9 @@ STEP 4: Calculate the IDF of a token after you have all the files tokenized. Thi
 	each document should only produce a SINGLE tuple entry for a particular term.
 
 STEP 5: Calculate the TF-IDF within the Token tuples.
+
+Data too long for column: truncate
+SET @@global.sql_mode= 'NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION';
+regex MySQL query to ignore all the number entries?? 
+select * from tokens where word regexp '^[^0-9 ]+$'
+group by word
