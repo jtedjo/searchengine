@@ -1,6 +1,7 @@
 import mysql.connector
 import bs4
 import re
+import json
 
 #FUNCTION DEFINITIONS
 #prob not the best functions, but if you have better, feel free to change it!
@@ -14,26 +15,38 @@ def printDescendingByVal(dict):
     for index,i in enumerate(sortedList):
         print sortedList[index][0], "-", sortedList[index][1]
 
+def visible(element):
+    if element.parent.name in ['style', 'script', '[document]', 'head', 'title']:
+        return False
+    elif re.match('<!--.*-->', str(element.encode('utf-8'))):
+        return False
+    return True
 
-cnx = mysql.connector.connect(user='user1', password='password',
+cnx = mysql.connector.connect(user='root', password='122BSQ',
                                   database='searchenginedb')
 
+with open("WEBPAGES_RAW/bookkeeping.json", "r") as json_data:
+    bookkeepingJson = json.load(json_data)
+
 #FILE READING PARTS
-for folderCount in range(1):
-    for fileCount in range(500):
-        folder = folderCount;
-        file = fileCount;
-        docID = folder *1000 + file;
+percentComplete = 0;
+for f in bookkeepingJson:
+        percentComplete += 1
+        print "Percent complete: "+str((percentComplete/len(bookkeepingJson))*100)+"%      \r",
+        folderNum = f.split("/")[0]
+        fileNum = f.split("/")[1]
+        docID = folderNum+"_"+fileNum
 
         #this is your own location of folder and files!!
-        file = open("C:\Users\Jonathan Tedjo\Desktop\UCI\Spring 2018\Information Retrieval\Homework\Homework3\WEBPAGES\WEBPAGES_RAW\\%d\\%d" %(folder, file), "r")
-        content = file.read()
+        htmlFile = open("WEBPAGES_RAW/"+folderNum+"/"+fileNum, "r")
+        content = htmlFile.read()
 
 
         contentSoup = bs4.BeautifulSoup(content, "lxml")
-
+        data = contentSoup.findAll(text=True)
+        result = filter(visible, data)
         #this will read all the string contents within the HTML files and remove any unnecessary \n
-        stringList = [(strings).encode('utf-8') for strings in contentSoup.findAll(text=True)]
+        stringList = [(strings).encode('utf-8') for strings in result]
 
         wordsDictionary ={}
         words = "";
@@ -53,7 +66,7 @@ for folderCount in range(1):
                 else:
                     wordsDictionary[words] += 1
 
-        printDescendingByVal(wordsDictionary)
+        #printDescendingByVal(wordsDictionary)
         #TO DOS, write the local dictionary into the database
 
         keys = wordsDictionary.keys()
@@ -62,12 +75,12 @@ for folderCount in range(1):
 
 
         cursor = cnx.cursor()
-
-        insert_statement = """ insert into TOKENS(word, term_frequency, doc_id) VALUES (%s, %s, %s)"""
-
+        
+        insert_statement = "insert into TOKENS(word, term_frequency, doc_id, file_name) VALUES (%s, %s, %s, %s)"
+        
         for key in wordsDictionary:
             if len(str(wordsDictionary.get(key))) < 100:
-                cursor.execute(insert_statement, (key,wordsDictionary.get(key), docID))
+                cursor.execute(insert_statement, (key,wordsDictionary.get(key), docID, bookkeepingJson[f]))
 
         cnx.commit()
         #try:
@@ -83,6 +96,6 @@ for folderCount in range(1):
         #testers code for MYSQL insertions
         #cursor.execute("Insert into tokens VALUES ('Darkness', 52  , 2, null)")
 
-        file.close()
+        htmlFile.close()
         cursor.close()
 cnx.close()
