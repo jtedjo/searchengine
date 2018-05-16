@@ -59,6 +59,8 @@ for f in bookkeepingJson:
         for i, sentence in enumerate(stringList):
             # result = re.sub(r'[^a-zA-Z0-9]', ' ', sentence)
             # split_string = result.split(" ")
+            #sometimes special character can screw up the input. AKA "more" and "more(special character) would not be "unique" by mysql
+            sentence = re.sub(r'\W+', ' ', sentence)
             split_string = word_tokenize(sentence);
             for words in split_string:
                 if words =='':
