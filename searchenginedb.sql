@@ -1,8 +1,8 @@
 CREATE TABLE `tokens` (
-  `word` varchar(200) NOT NULL,
+  `word` varchar(2048) NOT NULL,
   `term_frequency` int(11) DEFAULT NULL,
   `doc_id` VARCHAR(50) NOT NULL,
-  `file_name` varchar(0) NOT NULL,
+  `file_name` varchar(2048) NOT NULL,
   `tfandidf` int(11) DEFAULT NULL,
   PRIMARY KEY (`word`,`doc_id`)
 );
