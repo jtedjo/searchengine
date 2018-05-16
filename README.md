@@ -1,4 +1,8 @@
 # searchengine
+We are using NLTK tokenizer, thus you potentially need to install english.pickle. This line might help you install
+python -c "import nltk; nltk.download('punkt')"
+python -m nltk.downloader stopwords
+
 Algorithm/ How to use this program:
 
 

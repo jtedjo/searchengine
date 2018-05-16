@@ -2,13 +2,11 @@ import mysql.connector
 import bs4
 import re
 import json
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+
 
 #FUNCTION DEFINITIONS
-#prob not the best functions, but if you have better, feel free to change it!
-def tokenize (str):
-    #str_sub = re.sub(r'[^a-zA-Z0-9]', ' ', str)
-    split_string = re.split(r'[^a-zA-Z0-9]', str)
-    return split_string
 
 def printDescendingByVal(dict):
     sortedList = sorted(dict.iteritems(), key=lambda (k, v): (-v, k))
@@ -22,8 +20,13 @@ def visible(element):
         return False
     return True
 
-cnx = mysql.connector.connect(user='root', password='122BSQ',
+cnx = mysql.connector.connect(user='user1', password='password',
                                   database='searchenginedb')
+
+
+#cnx = mysql.connector.connect(user='root', password='122BSQ',
+#                                  database='searchenginedb')
+
 
 with open("WEBPAGES_RAW/bookkeeping.json", "r") as json_data:
     bookkeepingJson = json.load(json_data)
@@ -31,11 +34,12 @@ with open("WEBPAGES_RAW/bookkeeping.json", "r") as json_data:
 #FILE READING PARTS
 percentComplete = 0;
 for f in bookkeepingJson:
-        percentComplete += 1
-        print "Percent complete: "+str((percentComplete/len(bookkeepingJson))*100)+"%      \r",
-        folderNum = f.split("/")[0]
-        fileNum = f.split("/")[1]
-        docID = folderNum+"_"+fileNum
+        #percentComplete += 1
+        #print "Percent complete: "+str((percentComplete/len(bookkeepingJson))*100)+"%      \r",
+        folderNum = f.split("/")[0].encode('utf-8')
+        fileNum = f.split("/")[1].encode('utf-8')
+        docID = folderNum+"/"+fileNum
+        print ("folder ID = " + docID)
 
         #this is your own location of folder and files!!
         htmlFile = open("WEBPAGES_RAW/"+folderNum+"/"+fileNum, "r")
@@ -46,7 +50,8 @@ for f in bookkeepingJson:
         data = contentSoup.findAll(text=True)
         result = filter(visible, data)
         #this will read all the string contents within the HTML files and remove any unnecessary \n
-        stringList = [(strings).encode('utf-8') for strings in result]
+        stringList = [(strings) for strings in result]
+        stop_words = set(stopwords.words('English'))
 
         wordsDictionary ={}
         words = "";
@@ -54,17 +59,15 @@ for f in bookkeepingJson:
         for i, sentence in enumerate(stringList):
             # result = re.sub(r'[^a-zA-Z0-9]', ' ', sentence)
             # split_string = result.split(" ")
-            split_string = tokenize(sentence);
+            split_string = word_tokenize(sentence);
             for words in split_string:
                 words = words.lower();
-                if words == '': #beautiful soup have 'u' to indicate unicode, need to be passed
-                    pass
-                # if it does not exist in dictionary, initialize
-                elif not words in wordsDictionary:
-                    wordsDictionary[words] = 1
-                # otherwise increment
-                else:
-                    wordsDictionary[words] += 1
+                if words not in stop_words and len(words) < 35 and len(words) >2:
+                    if not words in wordsDictionary:
+                        wordsDictionary[words] = 1
+                    # otherwise increment
+                    else:
+                        wordsDictionary[words] += 1
 
         #printDescendingByVal(wordsDictionary)
         #TO DOS, write the local dictionary into the database
@@ -76,11 +79,11 @@ for f in bookkeepingJson:
 
         cursor = cnx.cursor()
         
-        insert_statement = "insert into TOKENS(word, term_frequency, doc_id, file_name) VALUES (%s, %s, %s, %s)"
+        insert_statement = "insert into TOKENS(word, term_frequency, doc_id) VALUES (%s, %s, %s)"
         
         for key in wordsDictionary:
             if len(str(wordsDictionary.get(key))) < 100:
-                cursor.execute(insert_statement, (key,wordsDictionary.get(key), docID, bookkeepingJson[f]))
+                cursor.execute(insert_statement, (key,wordsDictionary.get(key), docID))
 
         cnx.commit()
         #try:
