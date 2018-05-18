@@ -75,12 +75,13 @@ for f in bookkeepingJson:
                         # otherwise increment
                         else:
                             wordsDictionary[words] += 1
-                if words not in stop_words and len(words) < 35 and len(words) >2:
-                    if not words in wordsDictionary:
-                        wordsDictionary[words] = 1
-                    # otherwise increment
-                    else:
-                        wordsDictionary[words] += 1
+                else:
+                    if words not in stop_words and len(words) < 35 and len(words) >2:
+                        if not words in wordsDictionary:
+                            wordsDictionary[words] = 1
+                        # otherwise increment
+                        else:
+                            wordsDictionary[words] += 1
 
         #printDescendingByVal(wordsDictionary)
         #TO DOS, write the local dictionary into the database
