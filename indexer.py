@@ -20,6 +20,7 @@ def visible(element):
         return False
     return True
 
+
 cnx = mysql.connector.connect(user='user1', password='password',
                                   database='searchenginedb')
 
@@ -60,12 +61,20 @@ for f in bookkeepingJson:
             # result = re.sub(r'[^a-zA-Z0-9]', ' ', sentence)
             # split_string = result.split(" ")
             #sometimes special character can screw up the input. AKA "more" and "more(special character) would not be "unique" by mysql
-            sentence = re.sub(r'\W+', ' ', sentence)
+            sentence = re.sub(r'[^a-zA-Z0-9]', ' ', sentence)
             split_string = word_tokenize(sentence);
             for words in split_string:
                 if words =='':
                     pass
                 words = words.lower();
+                #check if number type, then anything greater than 3000 is prob uninformative
+                if isinstance(words, (int, long)):
+                    if(words < 3000):
+                        if not words in wordsDictionary:
+                            wordsDictionary[words] = 1
+                        # otherwise increment
+                        else:
+                            wordsDictionary[words] += 1
                 if words not in stop_words and len(words) < 35 and len(words) >2:
                     if not words in wordsDictionary:
                         wordsDictionary[words] = 1
@@ -86,7 +95,8 @@ for f in bookkeepingJson:
         insert_statement = "insert into TOKENS(word, term_frequency, doc_id) VALUES (%s, %s, %s)"
         
         for key in wordsDictionary:
-            cursor.execute(insert_statement, (key,wordsDictionary.get(key), docID))
+            #divide by total amount of words within a file to normalize the term frequency
+            cursor.execute(insert_statement, (key,wordsDictionary.get(key)/len(wordsDictionary), docID))
 
         cnx.commit()
         #try:
