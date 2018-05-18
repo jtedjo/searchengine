@@ -4,9 +4,27 @@ import re
 import json
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
+import numbers
 
 
 #FUNCTION DEFINITIONS
+def stringsInvalid(string):
+    containLetter = False;
+    containNumber = False;
+    for letter in string:
+        if letter.isalpha():
+            containLetter = True
+        if letter.isdigit():
+            containNumber= True
+            if letter == '0': #starts with 0, do not add as tokens
+                return True
+        if containLetter and containNumber:
+            return True
+    if containNumber:
+        if int(string) > 3000 or int(string) < 500:
+            return True #if the number is not too large, 500-3000 expectations to be useful
+    return False
+
 
 def printDescendingByVal(dict):
     sortedList = sorted(dict.iteritems(), key=lambda (k, v): (-v, k))
@@ -66,14 +84,15 @@ for f in bookkeepingJson:
             for words in split_string:
                 if words =='':
                     pass
-                words = words.lower();
-                #check if number type, then anything greater than 3000 is prob uninformative
-                if words not in stop_words and len(words) < 35 and len(words) >2:
-                    if not words in wordsDictionary:
-                        wordsDictionary[words] = 1
-                    # otherwise increment
-                    else:
-                        wordsDictionary[words] += 1
+                if not stringsInvalid(words):
+                    words = words.lower();
+                    #check if number type, then anything greater than 3000 is prob uninformative
+                    if words not in stop_words and len(words) < 35 and len(words) >2:
+                        if not words in wordsDictionary:
+                            wordsDictionary[words] = 1
+                        # otherwise increment
+                        else:
+                            wordsDictionary[words] += 1
 
         #printDescendingByVal(wordsDictionary)
         #TO DOS, write the local dictionary into the database
