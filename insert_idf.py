@@ -10,7 +10,8 @@ from nltk.corpus import stopwords
 #SELECT word, COUNT(*) FROM tokens GROUP BY word; <-- rs
 #INSERT INTO idf VALUES(rs->word, log(N/rs->count(*))
 
-cnx = mysql.connector.connect(user='root', password='122BSQ', database="searchenginedb")
+cnx = mysql.connector.connect(user='user1', password='password', database="searchenginedb")
+#cnx = mysql.connector.connect(user='root', password='122BSQ', database="searchenginedb")
 
 num_docs = cnx.cursor()
 num_docs_str = "SELECT COUNT(DISTINCT(doc_id)) from tokens;"
