@@ -68,20 +68,12 @@ for f in bookkeepingJson:
                     pass
                 words = words.lower();
                 #check if number type, then anything greater than 3000 is prob uninformative
-                if isinstance(words, (int, long)):
-                    if(words < 3000):
-                        if not words in wordsDictionary:
-                            wordsDictionary[words] = 1
-                        # otherwise increment
-                        else:
-                            wordsDictionary[words] += 1
-                else:
-                    if words not in stop_words and len(words) < 35 and len(words) >2:
-                        if not words in wordsDictionary:
-                            wordsDictionary[words] = 1
-                        # otherwise increment
-                        else:
-                            wordsDictionary[words] += 1
+                if words not in stop_words and len(words) < 35 and len(words) >2:
+                    if not words in wordsDictionary:
+                        wordsDictionary[words] = 1
+                    # otherwise increment
+                    else:
+                        wordsDictionary[words] += 1
 
         #printDescendingByVal(wordsDictionary)
         #TO DOS, write the local dictionary into the database
@@ -97,7 +89,7 @@ for f in bookkeepingJson:
         
         for key in wordsDictionary:
             #divide by total amount of words within a file to normalize the term frequency
-            cursor.execute(insert_statement, (key,wordsDictionary.get(key)/len(wordsDictionary), docID))
+            cursor.execute(insert_statement, (key,wordsDictionary.get(key), docID))
 
         cnx.commit()
         #try:
