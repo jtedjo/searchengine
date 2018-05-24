@@ -5,6 +5,11 @@ import json
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 import numbers
+from math import log
+from decimal import Decimal
+from decimal import getcontext
+import sys
+getcontext().prec = 5
 
 
 #FUNCTION DEFINITIONS
@@ -38,92 +43,102 @@ def visible(element):
         return False
     return True
 
+def readHTMLFile(f, location):
+    htmlFile = open(location+f, "r")
+    content = htmlFile.read()
+    htmlFile.close()
+    return content
 
-cnx = mysql.connector.connect(user='user1', password='password',
-                                  database='searchenginedb')
+def getDictionary(stringList, stopwords):
+    wordsDictionary = {}
+    words = "";
+
+    for i, sentence in enumerate(stringList):
+        #sometimes special character can screw up the input. AKA "more" and "more(special character) would not be "unique" by mysql
+        sentence = re.sub(r'[^a-zA-Z0-9]', ' ', sentence)
+        split_string = word_tokenize(sentence);
+        for words in split_string:
+            if words =='':
+                pass
+            if not stringsInvalid(words):
+                words = words.lower();
+                #check if number type, then anything greater than 3000 is prob uninformative
+                if words not in stop_words and len(words) < 35 and len(words) >2:
+                    if not words in wordsDictionary:
+                        wordsDictionary[words] = 1
+                    # otherwise increment
+                    else:
+                        wordsDictionary[words] += 1
+    return wordsDictionary
 
 
-#cnx = mysql.connector.connect(user='root', password='122BSQ',
+#cnx = mysql.connector.connect(user='user1', password='password',
 #                                  database='searchenginedb')
 
+if __name__ == "__main__":
+    cnx = mysql.connector.connect(user='root', password='122BSQ',
+                                      database='searchenginedb')
 
-with open("WEBPAGES_RAW/bookkeeping.json", "r") as json_data:
-    bookkeepingJson = json.load(json_data)
+    #with open("WEBPAGES_RAW/bookkeeping.json", "r") as json_data:
+    #    bookkeepingJson = json.load(json_data)
 
-#FILE READING PARTS
-percentComplete = 0;
-for f in bookkeepingJson:
-        #percentComplete += 1
-        #print "Percent complete: "+str((percentComplete/len(bookkeepingJson))*100)+"%      \r",
-        folderNum = f.split("/")[0]
-        fileNum = f.split("/")[1]
-        docID = folderNum+"/"+fileNum
-        print ("folder ID = " + docID)
+    with open ("../../../Desktop/WEBPAGES_RAW/bookkeeping.json", "r") as json_data:
+        bookkeepingJson = json.load(json_data)
 
-        #this is your own location of folder and files!!
-        htmlFile = open("WEBPAGES_RAW/"+folderNum+"/"+fileNum, "r")
-        content = htmlFile.read()
+    db_data = open("data.txt", "w")
 
+    #FILE READING PARTS
+    numRead = 0;
+    for f in bookkeepingJson:
+            numRead += 1
+            print "Reading File: "+ f + "\tPercent complete: "+str((Decimal(numRead)/Decimal(len(bookkeepingJson)))*Decimal(100.0))+"%  \r",
+            sys.stdout.flush()
+            
+            content = readHTMLFile(f, "../../../Desktop/WEBPAGES_RAW/")
 
-        contentSoup = bs4.BeautifulSoup(content, "lxml")
-        data = contentSoup.findAll(text=True)
-        result = filter(visible, data)
-        #this will read all the string contents within the HTML files and remove any unnecessary \n
-        stringList = [(strings) for strings in result]
-        stop_words = set(stopwords.words('English'))
+            contentSoup = bs4.BeautifulSoup(content, "lxml")
+            data = contentSoup.findAll(text=True)
+            result = filter(visible, data)
+            #this will read all the string contents within the HTML files and remove any unnecessary \n
+            stringList = [(strings) for strings in result]
+            stop_words = set(stopwords.words('English'))
 
-        wordsDictionary ={}
-        words = "";
+            wordsDictionary = getDictionary(stringList, stop_words)
+            """
+            words = "";
 
-        for i, sentence in enumerate(stringList):
-            # result = re.sub(r'[^a-zA-Z0-9]', ' ', sentence)
-            # split_string = result.split(" ")
-            #sometimes special character can screw up the input. AKA "more" and "more(special character) would not be "unique" by mysql
-            sentence = re.sub(r'[^a-zA-Z0-9]', ' ', sentence)
-            split_string = word_tokenize(sentence);
-            for words in split_string:
-                if words =='':
-                    pass
-                if not stringsInvalid(words):
-                    words = words.lower();
-                    #check if number type, then anything greater than 3000 is prob uninformative
-                    if words not in stop_words and len(words) < 35 and len(words) >2:
-                        if not words in wordsDictionary:
-                            wordsDictionary[words] = 1
-                        # otherwise increment
-                        else:
-                            wordsDictionary[words] += 1
+            for i, sentence in enumerate(stringList):
+                #sometimes special character can screw up the input. AKA "more" and "more(special character) would not be "unique" by mysql
+                sentence = re.sub(r'[^a-zA-Z0-9]', ' ', sentence)
+                split_string = word_tokenize(sentence);
+                for words in split_string:
+                    if words =='':
+                        pass
+                    if not stringsInvalid(words):
+                        words = words.lower();
+                        #check if number type, then anything greater than 3000 is prob uninformative
+                        if words not in stop_words and len(words) < 35 and len(words) >2:
+                            if not words in wordsDictionary:
+                                wordsDictionary[words] = 1
+                            # otherwise increment
+                            else:
+                                wordsDictionary[words] += 1
+            """
+            
+            keys = wordsDictionary.keys()
+            values = wordsDictionary.values()
+            cursor = cnx.cursor()
+            insert_statement = "LOAD DATA LOCAL INFILE 'data.txt' INTO TABLE searchenginedb.tokens FIELDS TERMINATED BY ','  LINES STARTING BY '';"
+            
+            for key in wordsDictionary:
+                #divide by total amount of words within a file to normalize the term frequency
+                #cursor.execute(insert_statement, (key, 1+log(wordsDictionary.get(key)), docID))
+                tf = Decimal(1+log(wordsDictionary.get(key))) + Decimal(0.0) #Decimal + Decimal to display correct precision
+                db_data.write(key + "," + str(tf) + "," + f + "\n")
+                    
+            cursor.execute(insert_statement)
+            cnx.commit()
+            cursor.close()
 
-        #printDescendingByVal(wordsDictionary)
-        #TO DOS, write the local dictionary into the database
-
-        keys = wordsDictionary.keys()
-        values = wordsDictionary.values()
-
-
-
-        cursor = cnx.cursor()
-        
-        insert_statement = "insert into TOKENS(word, term_frequency, doc_id) VALUES (%s, %s, %s)"
-        
-        for key in wordsDictionary:
-            #divide by total amount of words within a file to normalize the term frequency
-            cursor.execute(insert_statement, (key,wordsDictionary.get(key), docID))
-
-        cnx.commit()
-        #try:
-         #   cursor.executemany(insert_statement, keys, values)
-         #   cnx.commit()
-        #except:
-        #    cnx.rollback()
-
-        #MYSQL:
-        #tokens(word VARCHAR(250), term_frequency INT, doc_id INT, tfandidf INT)
-        #idf(word VARCHAR(250), counts DECIMAL(6,2)) probably should rename counts to idfscore
-
-        #testers code for MYSQL insertions
-        #cursor.execute("Insert into tokens VALUES ('Darkness', 52  , 2, null)")
-
-        htmlFile.close()
-        cursor.close()
-cnx.close()
+    db_data.close()
+    cnx.close()
