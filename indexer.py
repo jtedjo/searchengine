@@ -104,31 +104,10 @@ if __name__ == "__main__":
             stop_words = set(stopwords.words('English'))
 
             wordsDictionary = getDictionary(stringList, stop_words)
-            """
-            words = "";
-
-            for i, sentence in enumerate(stringList):
-                #sometimes special character can screw up the input. AKA "more" and "more(special character) would not be "unique" by mysql
-                sentence = re.sub(r'[^a-zA-Z0-9]', ' ', sentence)
-                split_string = word_tokenize(sentence);
-                for words in split_string:
-                    if words =='':
-                        pass
-                    if not stringsInvalid(words):
-                        words = words.lower();
-                        #check if number type, then anything greater than 3000 is prob uninformative
-                        if words not in stop_words and len(words) < 35 and len(words) >2:
-                            if not words in wordsDictionary:
-                                wordsDictionary[words] = 1
-                            # otherwise increment
-                            else:
-                                wordsDictionary[words] += 1
-            """
             
             keys = wordsDictionary.keys()
             values = wordsDictionary.values()
             cursor = cnx.cursor()
-            insert_statement = "LOAD DATA LOCAL INFILE 'data.txt' INTO TABLE searchenginedb.tokens FIELDS TERMINATED BY ','  LINES STARTING BY '';"
             
             for key in wordsDictionary:
                 #divide by total amount of words within a file to normalize the term frequency
@@ -136,9 +115,11 @@ if __name__ == "__main__":
                 tf = Decimal(1+log(wordsDictionary.get(key))) + Decimal(0.0) #Decimal + Decimal to display correct precision
                 db_data.write(key + "," + str(tf) + "," + f + "\n")
                     
-            cursor.execute(insert_statement)
-            cnx.commit()
-            cursor.close()
 
+    insert_statement = "LOAD DATA LOCAL INFILE 'data.txt' INTO TABLE searchenginedb.tokens FIELDS TERMINATED BY ','  LINES STARTING BY '';"
+    
+    cursor.execute(insert_statement)
+    cnx.commit()
+    cursor.close()
     db_data.close()
     cnx.close()
