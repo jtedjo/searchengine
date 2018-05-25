@@ -6,35 +6,33 @@ from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 import numbers
 from math import log
-from decimal import Decimal
-from decimal import getcontext
+from decimal import Decimal, getcontext
 import sys
 getcontext().prec = 5
 
 
 #FUNCTION DEFINITIONS
 def stringsInvalid(string):
-    containLetter = False;
-    containNumber = False;
+    contain_letter = False;
+    contain_number = False;
     for letter in string:
         if letter.isalpha():
-            containLetter = True
+            contain_letter = True
         if letter.isdigit():
-            containNumber= True
+            contain_number= True
             if letter == '0': #starts with 0, do not add as tokens
                 return True
-        if containLetter and containNumber:
+        if contain_letter and contain_number:
             return True
-    if containNumber:
+    if contain_number:
         if int(string) > 3000 or int(string) < 500:
             return True #if the number is not too large, 500-3000 expectations to be useful
     return False
 
-
-def printDescendingByVal(dict):
-    sortedList = sorted(dict.iteritems(), key=lambda (k, v): (-v, k))
-    for index,i in enumerate(sortedList):
-        print sortedList[index][0], "-", sortedList[index][1]
+def printDescendingByVal(dictionary):
+    sorted_list = sorted(dictionary.iteritems(), key=lambda (k, v): (-v, k))
+    for index,i in enumerate(sorted_list):
+        print sorted_list[index][0], "-", sorted_list[index][1]
 
 def visible(element):
     if element.parent.name in ['style', 'script', '[document]', 'head', 'title']:
@@ -43,17 +41,17 @@ def visible(element):
         return False
     return True
 
-def readHTMLFile(f, location):
-    htmlFile = open(location+f, "r")
-    content = htmlFile.read()
-    htmlFile.close()
+def htmlFileContents(location):
+    html_file = open(location, "r")
+    content = html_file.read()
+    html_file.close()
     return content
 
-def getDictionary(stringList, stopwords):
-    wordsDictionary = {}
+def getDictionary(string_list, stopwords):
+    words_dictionary = {}
     words = "";
 
-    for i, sentence in enumerate(stringList):
+    for i, sentence in enumerate(string_list):
         #sometimes special character can screw up the input. AKA "more" and "more(special character) would not be "unique" by mysql
         sentence = re.sub(r'[^a-zA-Z0-9]', ' ', sentence)
         split_string = word_tokenize(sentence);
@@ -63,19 +61,20 @@ def getDictionary(stringList, stopwords):
             if not stringsInvalid(words):
                 words = words.lower();
                 #check if number type, then anything greater than 3000 is prob uninformative
-                if words not in stop_words and len(words) < 35 and len(words) >2:
-                    if not words in wordsDictionary:
-                        wordsDictionary[words] = 1
+                if words not in stopwords and len(words) < 35 and len(words) >2:
+                    if not words in words_dictionary:
+                        words_dictionary[words] = 1
                     # otherwise increment
                     else:
-                        wordsDictionary[words] += 1
-    return wordsDictionary
+                        words_dictionary[words] += 1
+    return words_dictionary
 
-
-#cnx = mysql.connector.connect(user='user1', password='password',
-#                                  database='searchenginedb')
+### Main Function ###
 
 if __name__ == "__main__":
+    #cnx = mysql.connector.connect(user='user1', password='password',
+    #                                  database='searchenginedb')
+
     cnx = mysql.connector.connect(user='root', password='122BSQ',
                                       database='searchenginedb')
 
@@ -83,43 +82,40 @@ if __name__ == "__main__":
     #    bookkeepingJson = json.load(json_data)
 
     with open ("../../../Desktop/WEBPAGES_RAW/bookkeeping.json", "r") as json_data:
-        bookkeepingJson = json.load(json_data)
+        bookkeeping_json = json.load(json_data)
 
-    db_data = open("data.txt", "w")
-
+    db_data_file = open("data.txt", "w")
+    data_to_write = ""
     #FILE READING PARTS
-    numRead = 0;
-    for f in bookkeepingJson:
-            numRead += 1
-            print "Reading File: "+ f + "\tPercent complete: "+str((Decimal(numRead)/Decimal(len(bookkeepingJson)))*Decimal(100.0))+"%  \r",
+    num_read = 0
+    for f in bookkeeping_json:
+            num_read += 1
+            print "Reading File: "+ f + "\tPercent complete: "+str((Decimal(num_read)/Decimal(len(bookkeeping_json)))*Decimal(100.0))+"%  \r",
             sys.stdout.flush()
             
-            content = readHTMLFile(f, "../../../Desktop/WEBPAGES_RAW/")
+            #Write the tokens of the last file to data.txt and reset the data string
+            if((num_read % 50) == 0):
+                db_data_file.write(data_to_write)
+                data_to_write = ""
 
-            contentSoup = bs4.BeautifulSoup(content, "lxml")
-            data = contentSoup.findAll(text=True)
-            result = filter(visible, data)
+            content_soup = bs4.BeautifulSoup(htmlFileContents("../../../Desktop/WEBPAGES_RAW/"+f), "lxml")
+            
             #this will read all the string contents within the HTML files and remove any unnecessary \n
-            stringList = [(strings) for strings in result]
-            stop_words = set(stopwords.words('English'))
-
-            wordsDictionary = getDictionary(stringList, stop_words)
+            string_list = [(strings) for strings in filter(visible, content_soup.find_all(text=True))]
             
-            keys = wordsDictionary.keys()
-            values = wordsDictionary.values()
-            cursor = cnx.cursor()
-            
-            for key in wordsDictionary:
-                #divide by total amount of words within a file to normalize the term frequency
-                #cursor.execute(insert_statement, (key, 1+log(wordsDictionary.get(key)), docID))
-                tf = Decimal(1+log(wordsDictionary.get(key))) + Decimal(0.0) #Decimal + Decimal to display correct precision
-                db_data.write(key + "," + str(tf) + "," + f + "\n")
+            #Create a dictionary of the tokens and iterate over them, appending to the data string as we go
+            words_dictionary = getDictionary(string_list, set(stopwords.words('English')))
+            for key in words_dictionary:
+                tf = Decimal(1+log(words_dictionary.get(key))) + Decimal(0.0) #Decimal + Decimal to display correct precision
+                data_to_write += (key + "," + str(tf) + "," + f + "\n")
                     
-
+    #Create insertion statement and execute
     insert_statement = "LOAD DATA LOCAL INFILE 'data.txt' INTO TABLE searchenginedb.tokens FIELDS TERMINATED BY ','  LINES STARTING BY '';"
-    
+    cursor = cnx.cursor() 
     cursor.execute(insert_statement)
     cnx.commit()
+    
+    #Clean up
     cursor.close()
-    db_data.close()
+    db_data_file.close()
     cnx.close()
