@@ -10,6 +10,7 @@ from decimal import Decimal, getcontext
 import sys
 getcontext().prec = 5
 
+stop_words = set(stopwords.words('English'))
 
 #FUNCTION DEFINITIONS
 def stringsInvalid(string):
@@ -47,7 +48,7 @@ def htmlFileContents(location):
     html_file.close()
     return content
 
-def getDictionary(string_list, stopwords):
+def getDictionary(string_list):
     words_dictionary = {}
     words = "";
 
@@ -58,13 +59,11 @@ def getDictionary(string_list, stopwords):
         for words in split_string:
             if words =='':
                 pass
-            if not stringsInvalid(words):
-                words = words.lower();
-                #check if number type, then anything greater than 3000 is prob uninformative
-                if words not in stopwords and len(words) < 35 and len(words) >2:
+            if words not in stop_words and len(words) < 35 and len(words) > 2:
+                words = words.lower()
+                if not stringsInvalid(words):
                     if not words in words_dictionary:
                         words_dictionary[words] = 1
-                    # otherwise increment
                     else:
                         words_dictionary[words] += 1
     return words_dictionary
@@ -94,7 +93,8 @@ if __name__ == "__main__":
             sys.stdout.flush()
             
             #Write the tokens of the last file to data.txt and reset the data string
-            if((num_read % 50) == 0):
+            if((num_read % 100) == 0):
+                #print("\n" + data_to_write + "\n")
                 db_data_file.write(data_to_write)
                 data_to_write = ""
 
@@ -104,7 +104,7 @@ if __name__ == "__main__":
             string_list = [(strings) for strings in filter(visible, content_soup.find_all(text=True))]
             
             #Create a dictionary of the tokens and iterate over them, appending to the data string as we go
-            words_dictionary = getDictionary(string_list, set(stopwords.words('English')))
+            words_dictionary = getDictionary(string_list)
             for key in words_dictionary:
                 tf = Decimal(1+log(words_dictionary.get(key))) + Decimal(0.0) #Decimal + Decimal to display correct precision
                 data_to_write += (key + "," + str(tf) + "," + f + "\n")
