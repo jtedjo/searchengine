@@ -29,7 +29,7 @@ while(True):
     #print(input_query)
     input_list = queryWordList(input_query)
     for query in input_list:
-        cursor.execute(search_stmt_str, {"search_term":"%"+query+"%"})
+        cursor.execute(search_stmt_str, {"search_term":query})
         results = cursor.fetchall()
         i = 0
         for result in results:
@@ -41,7 +41,6 @@ while(True):
                 document_dictionary[doc_id] += tfandidf
 
     sorted_dictionary = sorted(document_dictionary.items(), key=operator.itemgetter(1), reverse = True)
-
     for i in range(10):
         print("Result " + str(i)+": "+bookkeepingJson[sorted_dictionary[i][0]])
 
