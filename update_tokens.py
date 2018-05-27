@@ -5,7 +5,7 @@ import bs4
 import re
 import json
 
-cnx = mysql.connector.connect(user='root', password='122BSQ',
+cnx = mysql.connector.connect(user='user1', password='password',
                                   database='searchenginedb')
 
 get_idf = cnx.cursor()
