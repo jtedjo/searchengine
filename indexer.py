@@ -80,7 +80,7 @@ if __name__ == "__main__":
     #with open("WEBPAGES_RAW/bookkeeping.json", "r") as json_data:
     #    bookkeepingJson = json.load(json_data)
 
-    with open ("../../../Desktop/WEBPAGES_RAW/bookkeeping.json", "r") as json_data:
+    with open ("../../../Desktop/WEBPAGES_PARSED/bookkeeping.json", "r") as json_data:
         bookkeeping_json = json.load(json_data)
 
     db_data_file = open("data.txt", "w")
@@ -98,11 +98,13 @@ if __name__ == "__main__":
                 db_data_file.write(data_to_write)
                 data_to_write = ""
 
-            content_soup = bs4.BeautifulSoup(htmlFileContents("../../../Desktop/WEBPAGES_RAW/"+f), "lxml")
+            #content_soup = bs4.BeautifulSoup(htmlFileContents("../../../Desktop/WEBPAGES_RAW/"+f), "lxml")
+            parsed_content = open("../../../Desktop/WEBPAGES_PARSED/"+f, "r")
             
             #this will read all the string contents within the HTML files and remove any unnecessary \n
-            string_list = [(strings) for strings in filter(visible, content_soup.find_all(text=True))]
-            
+            string_list = parsed_content.read().decode("utf-8").split(",")
+            parsed_content.close()
+
             #Create a dictionary of the tokens and iterate over them, appending to the data string as we go
             words_dictionary = getDictionary(string_list)
             for key in words_dictionary:

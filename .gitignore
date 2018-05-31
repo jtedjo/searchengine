@@ -3,3 +3,5 @@ indexer.py
 searchenginedb.sql
 README.md
 insert_idf.py
+
+data.txt
